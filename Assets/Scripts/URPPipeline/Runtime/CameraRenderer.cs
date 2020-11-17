@@ -1,10 +1,11 @@
 ﻿using UnityEngine;
 using UnityEngine.Rendering;
+
 /// <summary>
 /// URP 描述单个摄像机Render渲染
 /// 2.2:画天空球
 /// </summary>
-public class CameraRenderer 
+public partial class CameraRenderer 
 {
     /// <summary>
     /// 渲染上下文
@@ -27,25 +28,16 @@ public class CameraRenderer
     /// Default Unlit Shader Pass
     /// </summary>
     static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit");
-    /// <summary>
-    /// TSen RP 不支持的Shader类型
-    /// </summary>
-    static ShaderTagId[] LegacyShaderTagIds =
-    {
-        new ShaderTagId("Always"),
-        new ShaderTagId("ForwardBase"),
-        new ShaderTagId("PrepassBase"),
-        new ShaderTagId("Vertex"),
-        new ShaderTagId("VertexLMRGBM"),
-        new ShaderTagId("VertexLM")
-    };
     #endregion
     public void Render(ScriptableRenderContext contex,Camera camera)
     {
         this.context = contex;
         this.camera = camera;
-
-        if(!Cull())
+        //每个摄像机有自己的Buffer
+        PrepareBuffer();
+        //UI
+        PrepareForSceneWindow();
+        if (!Cull())
         {
             return;
         }
@@ -54,6 +46,8 @@ public class CameraRenderer
         DrawVisibleGeometry();
         //Un support shader
         DrawUnsupportedShaders();
+        //Gizmos 线
+        DrawGizmos();
         Submit();
     }
     /// <summary>
@@ -100,31 +94,18 @@ public class CameraRenderer
     {
         //设置摄像机属性给全局shader，不设置摄像机旋转 天空球并不会旋转
         context.SetupCameraProperties(camera);
+        CameraClearFlags flags = camera.clearFlags;
         //第三个参数背景清除 Color.clear (0,0,0,0) 完全透明 Profiler
-        buffer.ClearRenderTarget(true, true, Color.clear);
+        buffer.ClearRenderTarget(flags<=CameraClearFlags.Depth, flags==CameraClearFlags.Color,flags==CameraClearFlags.Color?camera.backgroundColor.linear: Color.clear);
 
-        buffer.BeginSample(bufferName);
+        buffer.BeginSample(SampleName);
         ExcuteBuffer();
     }
     void Submit()
     {
-        buffer.EndSample(bufferName);
+        buffer.EndSample(SampleName);
         //Buffer进行操作执行
         ExcuteBuffer();
         context.Submit();
-    }
-    /// <summary>
-    /// 不支持的Shader
-    /// </summary>
-    void DrawUnsupportedShaders()
-    {
-        var drawingSettings = new DrawingSettings(LegacyShaderTagIds[0],new SortingSettings(camera));
-        //Multi Pass
-        for(int i=1;i<LegacyShaderTagIds.Length;i++)
-        {
-            drawingSettings.SetShaderPassName(i, LegacyShaderTagIds[i]);
-        }
-        var filterSettings = FilteringSettings.defaultValue;
-        context.DrawRenderers(cullingResults,ref drawingSettings,ref filterSettings);
     }
 }

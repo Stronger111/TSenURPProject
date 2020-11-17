@@ -5,6 +5,11 @@ using UnityEngine.Rendering;
 /// </summary>
 public class CustomRenderPipeline : RenderPipeline
 {
+    public CustomRenderPipeline()
+    {
+        //开启SRP Batch
+        GraphicsSettings.useScriptableRenderPipelineBatching = true;
+    }
     /// <summary>
     /// 引用单个摄像机Render
     /// </summary>
