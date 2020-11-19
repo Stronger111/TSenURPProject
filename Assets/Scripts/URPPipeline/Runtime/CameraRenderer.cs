@@ -23,13 +23,17 @@ public partial class CameraRenderer
     /// Command Buufer 非托管对象 手动Dispose
     /// </summary>
     CommandBuffer buffer = new CommandBuffer { name=bufferName};
-    #region Shader
+    #region 灯光配置
+    Lighting lighting = new Lighting();
+    #endregion
+    #region Shader Tags
     /// <summary>
     /// Default Unlit Shader Pass
     /// </summary>
-    static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit");
+    static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit"),
+        litShaderTagId=new ShaderTagId("CustomLit");
     #endregion
-    public void Render(ScriptableRenderContext contex,Camera camera)
+    public void Render(ScriptableRenderContext contex,Camera camera,bool useDynamicBatching,bool useGPUInstancing)
     {
         this.context = contex;
         this.camera = camera;
@@ -43,7 +47,9 @@ public partial class CameraRenderer
         }
 
         Setup();
-        DrawVisibleGeometry();
+        //灯光配置
+        lighting.Setup(contex,cullingResults);
+        DrawVisibleGeometry(useDynamicBatching, useGPUInstancing);
         //Un support shader
         DrawUnsupportedShaders();
         //Gizmos 线
@@ -67,11 +73,13 @@ public partial class CameraRenderer
     /// <summary>
     /// 画可见的几何体
     /// </summary>
-    void DrawVisibleGeometry()
+    void DrawVisibleGeometry(bool useDynamicBathching,bool useGPUInstancing)
     {
         //先画不透明物体 顺序是从前往后画 不透明 在半透明物体
         var sortingSettings = new SortingSettings(camera) { criteria=SortingCriteria.CommonOpaque};
-        var drawingSettings = new DrawingSettings(unlitShaderTagId,sortingSettings);
+        //开启动态合批 关闭GPU Instancing Draw unlitShader 和 litShaderTagId
+        var drawingSettings = new DrawingSettings(unlitShaderTagId, sortingSettings) { enableDynamicBatching= useDynamicBathching, enableInstancing= useGPUInstancing };
+        drawingSettings.SetShaderPassName(1,litShaderTagId);
         var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
         //Draw Opaque Visible Renderer
         context.DrawRenderers(cullingResults,ref drawingSettings,ref filteringSettings);
