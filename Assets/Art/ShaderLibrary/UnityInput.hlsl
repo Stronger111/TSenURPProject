@@ -12,5 +12,7 @@ CBUFFER_END
 float4x4 unity_MatrixVP;
 float4x4 unity_MatrixV;
 float4x4 glstate_matrix_projection;
+//世界空间摄像机位置
+float3 _WorldSpaceCameraPos;
 
 #endif
