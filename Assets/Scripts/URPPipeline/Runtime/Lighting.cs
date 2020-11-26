@@ -21,18 +21,29 @@ public class Lighting : MonoBehaviour
     const int maxDirLightCount = 4;
     static int dirLightCountId = Shader.PropertyToID("_DirectionalLightCount"),
         dirLightColorsId = Shader.PropertyToID("_DirectionalLightColors"),
-        dirLightDirectionsId = Shader.PropertyToID("_DirectionalLightDirections");
+        dirLightDirectionsId = Shader.PropertyToID("_DirectionalLightDirections"),
+        dirLightShadowDataId = Shader.PropertyToID("_DirectionalLightShadowData");
 
     //存取灯光颜色和方向
     static Vector4[] dirLightColors = new Vector4[maxDirLightCount],
-        dirLightDirections = new Vector4[maxDirLightCount];
+        dirLightDirections = new Vector4[maxDirLightCount],
+        dirLightShadowData=new Vector4[maxDirLightCount];
 
     CullingResults cullingResults;
-    public void Setup(ScriptableRenderContext context,CullingResults cullingResults)
+    /// <summary>
+    /// 阴影渲染
+    /// </summary>
+    Shadows shadows = new Shadows();
+    public void Setup(ScriptableRenderContext context,CullingResults cullingResults,ShadowSettings shadowSettings)
     {
         this.cullingResults = cullingResults;
         buffer.BeginSample(bufferName);
+        //阴影提前设置
+        shadows.Setup(context,cullingResults,shadowSettings);
+        //设置灯光
         SetupLights();
+        //渲染阴影
+        shadows.Render();
         buffer.EndSample(bufferName);
         context.ExecuteCommandBuffer(buffer);
         buffer.Clear();
@@ -56,6 +67,8 @@ public class Lighting : MonoBehaviour
         buffer.SetGlobalInt(dirLightCountId, visibleLights.Length);
         buffer.SetGlobalVectorArray(dirLightColorsId,dirLightColors);
         buffer.SetGlobalVectorArray(dirLightDirectionsId,dirLightDirections);
+        //阴影Uniform Buffer
+        buffer.SetGlobalVectorArray(dirLightShadowDataId,dirLightShadowData);
     }
     void SetupDirectionalLight(int index,ref VisibleLight visibleLight)
     {
@@ -66,5 +79,13 @@ public class Lighting : MonoBehaviour
         dirLightColors[index] = visibleLight.finalColor;
         //知乎解释visibleLight.localToWorldMatrix.GetColumn(2)
         dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
+        //阴影保存
+        dirLightShadowData[index]=shadows.ReserveDirectionalShadows(visibleLight.light,index);
+    }
+
+    public void Cleanup()
+    {
+        //清除纹理资源
+        shadows.Cleanup();
     }
 }

@@ -5,6 +5,7 @@ struct Light
 {
    float3 color;
    float3 direction;
+   float attenuation;
 };
 
 #define MAX_DIRECTIONAL_LIGHT_COUNT 4
@@ -18,6 +19,8 @@ CBUFFER_START(_CustomLight)
   int _DirectionalLightCount;
   float4 _DirectionalLightColors[MAX_DIRECTIONAL_LIGHT_COUNT];
   float4 _DirectionalLightDirections[MAX_DIRECTIONAL_LIGHT_COUNT];
+  //阴影
+  float4 _DirectionalLightShadowData[MAX_DIRECTIONAL_LIGHT_COUNT];
 CBUFFER_END
 
 ///获取灯光的数量
@@ -25,12 +28,28 @@ int GetDirectionalLightCount()
 {
    return _DirectionalLightCount;
 }
+//获取方向光阴影数据
+DirectionalShadowData GetDirectionalShadowData(int lightIndex,ShadowData shadowData)
+{
+   DirectionalShadowData data;
+   //阴影强度
+   data.strength=_DirectionalLightShadowData[lightIndex].x*shadowData.strength;
+   //+Cascade Index索引
+   data.tileIndex=_DirectionalLightShadowData[lightIndex].y+shadowData.cascadeIndex;
+   //Noraml Bias
+   data.normalBias=_DirectionalLightShadowData[lightIndex].z;
+   return data;
+}
 
-Light GetDirectionalLight(int index)
+Light GetDirectionalLight(int index,Surface surfaceWS,ShadowData shadowData)
 {
    Light light;
    light.color=_DirectionalLightColors[index].rgb;
    light.direction=_DirectionalLightDirections[index].xyz;
+   //Shadow 部分
+   DirectionalShadowData dirShadowData=GetDirectionalShadowData(index,shadowData);
+   light.attenuation=GetDirectionalShadowAttenuation(dirShadowData,shadowData,surfaceWS);
+   //light.attenuation=shadowData.cascadeIndex*0.25;
    return light;
 }
 

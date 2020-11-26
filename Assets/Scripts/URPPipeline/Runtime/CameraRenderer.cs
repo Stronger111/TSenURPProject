@@ -33,7 +33,8 @@ public partial class CameraRenderer
     static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit"),
         litShaderTagId=new ShaderTagId("CustomLit");
     #endregion
-    public void Render(ScriptableRenderContext contex,Camera camera,bool useDynamicBatching,bool useGPUInstancing)
+    public void Render(ScriptableRenderContext contex,Camera camera,bool useDynamicBatching,bool useGPUInstancing,
+        ShadowSettings shadowSettings)
     {
         this.context = contex;
         this.camera = camera;
@@ -41,30 +42,38 @@ public partial class CameraRenderer
         PrepareBuffer();
         //UI
         PrepareForSceneWindow();
-        if (!Cull())
+        //阴影Cull
+        if (!Cull(shadowSettings.maxDistance))
         {
             return;
         }
-
+        buffer.BeginSample(SampleName);
+        ExcuteBuffer();
+        //灯光配置 添加阴影参数
+        lighting.Setup(contex,cullingResults,shadowSettings);
+        buffer.EndSample(SampleName);
+        //常规渲染
         Setup();
-        //灯光配置
-        lighting.Setup(contex,cullingResults);
         DrawVisibleGeometry(useDynamicBatching, useGPUInstancing);
         //Un support shader
         DrawUnsupportedShaders();
         //Gizmos 线
         DrawGizmos();
+        //释放纹理资源
+        lighting.Cleanup();
         Submit();
     }
     /// <summary>
     /// 剔除的结果
     /// </summary>
     CullingResults cullingResults;
-    bool Cull()
+    bool Cull(float maxShadowDistance)
     {
         //剔除参数结构
         if(camera.TryGetCullingParameters(out ScriptableCullingParameters p))
         {
+            //Culling 参数最大阴影距离 阴影距离为摄像机平面和最大距离的最小值
+            p.shadowDistance =Mathf.Min(maxShadowDistance,camera.farClipPlane) ;
             cullingResults = context.Cull(ref p);
             return true;
         }
@@ -98,6 +107,7 @@ public partial class CameraRenderer
         context.ExecuteCommandBuffer(buffer);
         buffer.Clear();
     }
+  
     void Setup()
     {
         //设置摄像机属性给全局shader，不设置摄像机旋转 天空球并不会旋转

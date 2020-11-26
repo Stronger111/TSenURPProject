@@ -7,6 +7,9 @@
         _Cutoff ("Alpha Cutoff",Range(0.0,1.0)) = 0.5
         //是否开启 Alpha Clipping
         [Toggle(_CLIPPING)]_Clipping ("Alpha Clipping",Float) =0
+        [Toggle(_RECEIVE_SHADOWS)] _ReceiveShadows ("Receive Shadows",Float) = 1
+        //阴影的模式
+        [KeywordEnum(On,Clip,Dither,Off)] _Shadows ("Shadows",Float) =0
         //Metallic
         _Metallic ("Metallic",Range(0,1)) = 0
         //光滑度
@@ -28,7 +31,13 @@
             HLSLPROGRAM
             #pragma target 3.5
             #pragma shader_feature _CLIPPING
+            //接收阴影
+            #pragma shader_feature _RECEIVE_SHADOWS
+            //#pragma shader_feature _ _SHADOWS_CLIP _SHADOWS_DITHER
 			#pragma shader_feature _PREMULTIPLY_ALPHA
+            //软阴影
+            #pragma multi_compile _ _DIRECTIONAL_PCF3 _DIRECTIONAL_PCF5 _DIRECTIONAL_PCF7
+            #pragma multi_compile _ _CASCADE_BLEND_SOFT _CASCADE_BLEND_DITHER
             //GPU Instancing 生成两个变体 有GPU Instancing 支持得和没有GPU Instancing支持的
             #pragma multi_compile_instancing
             #pragma vertex LitPassVertex
@@ -50,6 +59,23 @@
             sampler2D _MainTex;
             float4 _MainTex_ST;
 
+            ENDHLSL
+        }
+
+        Pass
+        {
+            //阴影投射Pass
+            Tags {"LightMode"="ShadowCaster"}
+
+            ColorMask 0
+            HLSLPROGRAM
+            #pragma target 3.5
+            //#pragma shader_feature _CLIPPING
+            #pragma shader_feature _ _SHADOWS_CLIP _SHADOWS_DITHER
+			#pragma multi_compile_instancing
+            #pragma vertex ShadowCasterPassVertex
+            #pragma fragment ShadowCasterPassFragment
+            #include "ShadowCasterPass.hlsl"
             ENDHLSL
         }
     }

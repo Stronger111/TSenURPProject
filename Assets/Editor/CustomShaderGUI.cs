@@ -46,8 +46,31 @@ public class CustomShaderGUI : ShaderGUI
     bool HasPremultiplyAlpha => HasProperty("_PremulAlpha");
 
     bool showPresets;
+    /// <summary>
+    /// 阴影模式
+    /// </summary>
+    enum ShadowMode
+    {
+        On,
+        Clip,
+        Dither,
+        Off
+    }
+
+    ShadowMode Shadows
+    {
+        set
+        {
+            if(SetProperty("_Shadows",(float)value))
+            {
+                SetKeyworld("_SHADOWS_CLIP",value==ShadowMode.Clip);
+                SetKeyworld("_SHADOWS_DITHER",value==ShadowMode.Dither);
+            }
+        }
+    }
     public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties)
     {
+        EditorGUI.BeginChangeCheck();
         base.OnGUI(materialEditor, properties);
         editor = materialEditor;
         materials = editor.targets;
@@ -63,6 +86,11 @@ public class CustomShaderGUI : ShaderGUI
             {
                 TransparentPreset();
             }
+        }
+
+        if(EditorGUI.EndChangeCheck())
+        {
+            SetShadowCasterPass();
         }
     }
 
@@ -172,4 +200,19 @@ public class CustomShaderGUI : ShaderGUI
         }
     }
 
+    void SetShadowCasterPass()
+    {
+        //false 是否会抛出异常
+        MaterialProperty shadows = FindProperty("_Shadows",properties,false);
+        //hasMixedValue  多个材质需要相同的值
+        if (shadows==null||shadows.hasMixedValue)
+        {
+            return;
+        }
+        bool enabled = shadows.floatValue < (float)ShadowMode.Off;
+        foreach(Material m in materials)
+        {
+            m.SetShaderPassEnabled("ShadowCaster",enabled);
+        }
+    }
 }
