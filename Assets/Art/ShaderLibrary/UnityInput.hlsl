@@ -6,6 +6,20 @@ CBUFFER_START(UnityPerDraw)
   float4x4 unity_WorldToObject;
   float4 unity_LODFade;
   real4 unity_WorldTransformParams;
+
+  //LightMap 数据
+  float4 unity_LightmapST;
+  //不会打断Srp Batch
+  float4 unity_DynamicLightmapST;
+  //Light Probe 球谐光
+  float4 unity_SHAr;
+  float4 unity_SHAg;
+  float4 unity_SHAb;
+
+  float4 unity_SHBr;
+  float4 unity_SHBg;
+  float4 unity_SHBb;
+  float4 unity_SHC;
 CBUFFER_END
 
 //世界空间转换裁剪矩阵

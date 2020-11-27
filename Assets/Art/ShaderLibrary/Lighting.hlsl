@@ -11,12 +11,12 @@ float3 GetLighting(Surface surface,BRDF brdf,Light light)
 {
    return IncomingLight(surface,light)*DirectBRDF(surface,brdf,light);
 }
-//Diffuse Color * Albedo
-float3 GetLighting(Surface surfaceWS,BRDF brdf)
+//Diffuse Color * Albedo 添加GI Debug GI
+float3 GetLighting(Surface surfaceWS,BRDF brdf,GI gi)
 {
    ShadowData shadowData=GetShadowData(surfaceWS);
    //循环四盏光的信息 颜色叠加
-   float3 color=0.0;
+   float3 color=gi.diffuse;
    for(int i=0;i<GetDirectionalLightCount();i++)
    {
       Light light=GetDirectionalLight(i,surfaceWS,shadowData);

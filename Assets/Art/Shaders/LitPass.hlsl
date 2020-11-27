@@ -6,6 +6,7 @@
 #include "../ShaderLibrary/Shadows.hlsl"
 #include "../ShaderLibrary/Light.hlsl"
 #include "../ShaderLibrary/BRDF.hlsl"
+#include "../ShaderLibrary/GI.hlsl"
 #include "../ShaderLibrary/Lighting.hlsl"
 //支持SRP Batch
 //CBUFFER_START(UnityPerMaterial)
@@ -18,6 +19,8 @@ struct Attributes
    float3 positionOS : POSITION;
    float3 normalOS : NORMAL;
    float2 baseUV : TEXCOORD0;
+   //LightMap
+   GI_ATTRIBUTE_DATA
    UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 
@@ -41,6 +44,7 @@ struct Varyings
    float2 baseUV : VAR_BASE_UV;
    //世界空间法线
    float3 normalWS : VAR_NORMAL;
+   GI_VARYINGS_DATA
    UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 //顶点着色器
@@ -49,6 +53,8 @@ Varyings LitPassVertex(Attributes input)
     Varyings output;
     UNITY_SETUP_INSTANCE_ID(input);
     UNITY_TRANSFER_INSTANCE_ID(input,output);
+    //转换
+    TRANSFER_GI_DATA(input,output);
     output.positionWS=TransformObjectToWorld(input.positionOS.xyz);
     output.positionCS=TransformWorldToHClip(output.positionWS);
     //反向Z
@@ -96,7 +102,9 @@ float4 LitPassFragment(Varyings input) :SV_TARGET
    #else
      BRDF brdf=GetBRDF(surface);
    #endif
-   float3 color=GetLighting(surface,brdf);
+   //GI 全局光照部分
+   GI gi=GetGI(GI_FRAGMENT_DATA(input),surface);
+   float3 color=GetLighting(surface,brdf,gi);
 
    return float4(color,surface.alpha);
 } 
