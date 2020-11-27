@@ -20,6 +20,11 @@ CBUFFER_START(UnityPerDraw)
   float4 unity_SHBg;
   float4 unity_SHBb;
   float4 unity_SHC;
+  //LPPVs 对一些大的动物体接收场景间接光部分 3D float texture
+  float4 unity_ProbeVolumeParams;
+  float4x4 unity_ProbeVolumeWorldToObject;
+  float4 unity_ProbeVolumeSizeInv;
+  float4 unity_ProbeVolumeMin;
 CBUFFER_END
 
 //世界空间转换裁剪矩阵

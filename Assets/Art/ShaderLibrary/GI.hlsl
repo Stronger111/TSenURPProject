@@ -2,9 +2,12 @@
 #define CUSTOM_GI_INCLUDE
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"
-
+//Light Map
 TEXTURE2D(unity_Lightmap);
 SAMPLER(samplerunity_Lightmap);
+//LPPVs
+TEXTURE3D_FLOAT(unity_ProbeVolumeSH);
+SAMPLER(samplerunity_ProbeVolumeSH);
 
 //开启LightMap
 #if defined(LIGHTMAP_ON)
@@ -49,7 +52,15 @@ float3 SampleLightProbe(Surface surfaceWS)
     #if  defined(LIGHTMAP_ON)
 	   return 0.0;
 	#else
-	   float4 coefficients[7];
+	   if(unity_ProbeVolumeParams.x)
+	   {
+	      return SampleProbeVolumeSH4(TEXTURE3D_ARGS(unity_ProbeVolumeSH,samplerunity_ProbeVolumeSH),surfaceWS.position,surfaceWS.normal,
+		          unity_ProbeVolumeWorldToObject,unity_ProbeVolumeParams.y,unity_ProbeVolumeParams.z,unity_ProbeVolumeMin.xyz,
+				  unity_ProbeVolumeSizeInv.xyz);
+	   }
+	   else
+	   {
+	    float4 coefficients[7];
 	   	coefficients[0] = unity_SHAr;
 		coefficients[1] = unity_SHAg;
 		coefficients[2] = unity_SHAb;
@@ -58,6 +69,7 @@ float3 SampleLightProbe(Surface surfaceWS)
 		coefficients[5] = unity_SHBb;
 		coefficients[6] = unity_SHC;
 		return max(0.0,SampleSH9(coefficients,surfaceWS.normal));
+		}
 	#endif
 }
 
