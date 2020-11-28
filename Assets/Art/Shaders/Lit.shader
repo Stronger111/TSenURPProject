@@ -14,7 +14,11 @@
         _Metallic ("Metallic",Range(0,1)) = 0
         //光滑度
         _Smoothness("Smoothness",Range(0,1)) = 0.5
-
+		//自发光
+		[NoScaleOffset] _EmissionMap ("Emission",2D) ="white" {}
+		[HDR] _EmissionColor ("Emission",Color) = (0,0,0,0)
+		[HideInInspector] _MainTex ("Texture for Lightmap",2D) = "white" {}
+		[HideInInspector] _Color ("Color for Lightmap",Color)=(0.5,0.5,0.5,1.0)
 		[Toggle(_PREMULTIPLY_ALPHA)] _PremulAlpha("Premultiply Alpha",Float)=0
         [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("Src Blend",Float) = 1
         [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("Dst Blend",Float) = 0
@@ -22,6 +26,11 @@
     }
     SubShader
     {
+	    HLSLINCLUDE
+		#include "../ShaderLibrary/Common.hlsl"
+		#include "LitInput.hlsl"
+		ENDHLSL
+
         Tags { "LightMode"="CustomLit" }
 
         Pass
@@ -80,6 +89,20 @@
             #include "ShadowCasterPass.hlsl"
             ENDHLSL
         }
+
+		Pass
+		{
+		   Tags {"LightMode"="Meta"}  //金属流工作模式
+
+		   Cull Off
+
+		   HLSLPROGRAM
+		   #pragma target 3.5
+		   #pragma vertex MetaPassVertex
+		   #pragma fragment MetaPassFragment
+		   #include "MetaPass.hlsl"
+		   ENDHLSL
+		}
     }
 	//自定义GUI
 	CustomEditor "CustomShaderGUI"

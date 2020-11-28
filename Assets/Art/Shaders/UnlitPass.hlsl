@@ -16,16 +16,16 @@ struct Attributes
 };
 
 //Alpha Blend Texture
-TEXTURE2D(_BaseMap);
-SAMPLER(sampler_BaseMap);
+//TEXTURE2D(_BaseMap);
+//SAMPLER(sampler_BaseMap);
 
-UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
-   UNITY_DEFINE_INSTANCED_PROP(float4,_BaseMap_ST)
-   UNITY_DEFINE_INSTANCED_PROP(float4,_BaseColor)
-   UNITY_DEFINE_INSTANCED_PROP(float,_Cutoff)
-   UNITY_DEFINE_INSTANCED_PROP(float,_Metallic)
-   UNITY_DEFINE_INSTANCED_PROP(float,_Smoothness)
-UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
+//UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
+//   UNITY_DEFINE_INSTANCED_PROP(float4,_BaseMap_ST)
+//   UNITY_DEFINE_INSTANCED_PROP(float4,_BaseColor)
+//   UNITY_DEFINE_INSTANCED_PROP(float,_Cutoff)
+//   UNITY_DEFINE_INSTANCED_PROP(float,_Metallic)
+//   UNITY_DEFINE_INSTANCED_PROP(float,_Smoothness)
+//UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 //TSen  VAR_BASE_UV ???
 //输出结构
 struct Varyings
