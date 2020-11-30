@@ -47,10 +47,15 @@
             //软阴影
             #pragma multi_compile _ _DIRECTIONAL_PCF3 _DIRECTIONAL_PCF5 _DIRECTIONAL_PCF7
             #pragma multi_compile _ _CASCADE_BLEND_SOFT _CASCADE_BLEND_DITHER
+            //ShadowMask
+            #pragma multi_compile _ _SHADOW_MASK_ALWAYS  _SHADOW_MASK_DISTANCE
             //开启LightMap
             #pragma multi_compile _ LIGHTMAP_ON
             //GPU Instancing 生成两个变体 有GPU Instancing 支持得和没有GPU Instancing支持的
             #pragma multi_compile_instancing
+            //LOD Cross-Fade
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
+
             #pragma vertex LitPassVertex
             #pragma fragment LitPassFragment
             #include "LitPass.hlsl"
@@ -84,6 +89,8 @@
             //#pragma shader_feature _CLIPPING
             #pragma shader_feature _ _SHADOWS_CLIP _SHADOWS_DITHER
 			#pragma multi_compile_instancing
+            //LOD Cross-Fade
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
             #pragma vertex ShadowCasterPassVertex
             #pragma fragment ShadowCasterPassFragment
             #include "ShadowCasterPass.hlsl"

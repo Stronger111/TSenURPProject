@@ -61,12 +61,21 @@ public class Shadows
     /// 阴影模式
     /// </summary>
     static string[] cascadeBlendKeywords = { "_CASCADE_BLEND_SOFT","_CASCADE_BLEND_DITHER"};
+    /// <summary>
+    /// 阴影DistanceShadowMask 和 ShadowMask  
+    /// </summary>
+    static string[] shadowMaskKeywords = { "_SHADOW_MASK_ALWAYS " , "_SHADOW_MASK_DISTANCE" };
+    /// <summary>
+    /// 是否使用ShadowMask
+    /// </summary>
+    bool useShadowMask;
     public void Setup(ScriptableRenderContext context, CullingResults cullingResults, ShadowSettings settings)
     {
         this.context = context;
         this.cullingResults = cullingResults;
         this.settings = settings;
         shadowedDirectionalLightCount = 0;
+        useShadowMask = false;
     }
 
     void ExecuteBuffer()
@@ -87,6 +96,11 @@ public class Shadows
             //声明默认的ShadowMap格式防止 GPU采样错误的ShadowMap格式 1X1大小
             buffer.GetTemporaryRT(dirShadowAtlasId, 1, 1, 32, FilterMode.Bilinear, RenderTextureFormat.Shadowmap);
         }
+        //ShadowMask
+        buffer.BeginSample(bufferName);
+        SetKeywords(shadowMaskKeywords,useShadowMask? QualitySettings.shadowmaskMode==ShadowmaskMode.Shadowmask ? 0:1:-1);
+        buffer.EndSample(bufferName);
+        ExecuteBuffer();
     }
 
     void RenderDirectionalShadows()
@@ -244,21 +258,35 @@ public class Shadows
     }
 
     /// <summary>
-    /// 储备方向光阴影 Vector2存取强度和光线的索引
+    /// 储备方向光阴影 Vector2存取强度和光线的索引 支持四盏光的ShadowMask
     /// </summary>
     /// <param name="light"></param>
     /// <param name="visibleLightIndex"></param>
-    public Vector3 ReserveDirectionalShadows(Light light,int visibleLightIndex)
+    public Vector4 ReserveDirectionalShadows(Light light,int visibleLightIndex)
     {
-        //检测阴影强度 None
-        if(shadowedDirectionalLightCount<maxShadowedDirectionalLightCount
-            &&light.shadows!=LightShadows.None &&light.shadowStrength>0f&&
-            cullingResults.GetShadowCasterBounds(visibleLightIndex,out Bounds b))
+        //检测阴影强度 None &&cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b)
+        if (shadowedDirectionalLightCount<maxShadowedDirectionalLightCount
+            &&light.shadows!=LightShadows.None &&light.shadowStrength>0f)
         {
+            float maskChannel = -1;
+            //shadowMask
+            LightBakingOutput lightBaking = light.bakingOutput;
+            if(lightBaking.lightmapBakeType==LightmapBakeType.Mixed && lightBaking.mixedLightingMode==MixedLightingMode.Shadowmask)
+            {
+                useShadowMask = true;
+                maskChannel = lightBaking.occlusionMaskChannel;
+            }
+            //直接Return 出去 不需要Cacade数据 阴影跑出CullSphere里面
+            if(!cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
+            {
+                //负数防止Shader 采样ShadowMap
+                return new Vector4(-light.shadowStrength,0f,0f, maskChannel);
+            }
+
             ShadowDirectionalLights[shadowedDirectionalLightCount] = new ShadowDirectionalLight { visibleLightIndex=visibleLightIndex,slopeScaleBias=light.shadowBias,nearPlaneOffset=light.shadowNearPlane};
             //* 级联ShadowMap的数量
-            return new Vector3(light.shadowStrength,settings.directional.cascadeCount*shadowedDirectionalLightCount++,light.shadowNormalBias);
+            return new Vector4(light.shadowStrength,settings.directional.cascadeCount*shadowedDirectionalLightCount++,light.shadowNormalBias, maskChannel);
         }
-        return Vector3.zero;
+        return new Vector4(0f,0f,0f,-1f);
     }
 }

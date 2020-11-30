@@ -74,6 +74,11 @@ Varyings LitPassVertex(Attributes input)
 float4 LitPassFragment(Varyings input) :SV_TARGET
 {
    UNITY_SETUP_INSTANCE_ID(input);
+   //Debug LOD
+   //#if defined(LOD_FADE_CROSSFADE)
+   //   return -unity_LODFade.x;
+   //#endif
+   ClipLOD(input.positionCS.xy,unity_LODFade.x);
    //float4 baseMap=SAMPLE_TEXTURE2D(_BaseMap,sampler_BaseMap,input.baseUV); baseMap*baseColor
    //float4 baseColor= UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_BaseColor);
    //UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_Cutoff)
@@ -104,7 +109,7 @@ float4 LitPassFragment(Varyings input) :SV_TARGET
      BRDF brdf=GetBRDF(surface);
    #endif
    //GI 全局光照部分
-   GI gi=GetGI(GI_FRAGMENT_DATA(input),surface);
+   GI gi=GetGI(GI_FRAGMENT_DATA(input),surface,brdf);
    float3 color=GetLighting(surface,brdf,gi);
    //自发光
    color+=GetEmission(input.baseUV);

@@ -18,7 +18,18 @@ struct BRDF
    float3 specular;
    //粗糙度
    float roughness;
+   //根据粗糙度 采取正确的MipMap
+   float perceptualRoughness;
 };
+//Indirect BRDF IBL
+float3 IndirectBRDF(Surface surface,BRDF brdf,float3 diffuse,float3 specular)
+{
+    //反射
+    float3 reflection=specular*brdf.specular;
+    //越粗糙反射越弱
+    reflection /=brdf.roughness*brdf.roughness+1.0;
+    return diffuse*brdf.diffuse+reflection;
+}
 
 BRDF GetBRDF(Surface surface,bool applyAlphaToDiffuse=false)
 {
@@ -32,9 +43,9 @@ BRDF GetBRDF(Surface surface,bool applyAlphaToDiffuse=false)
    }
    //高光
    brdf.specular=lerp(MIN_REFLECTIVITY,surface.color,surface.metallic);
-   float perceptualRoughness=PerceptualSmoothnessToPerceptualRoughness(surface.smoothness);
+   brdf.perceptualRoughness=PerceptualSmoothnessToPerceptualRoughness(surface.smoothness);
    //粗糙度 Unity
-   brdf.roughness=PerceptualRoughnessToRoughness(perceptualRoughness);
+   brdf.roughness=PerceptualRoughnessToRoughness(brdf.perceptualRoughness);
    return brdf;
 }
 //

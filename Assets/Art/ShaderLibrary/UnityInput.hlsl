@@ -6,7 +6,8 @@ CBUFFER_START(UnityPerDraw)
   float4x4 unity_WorldToObject;
   float4 unity_LODFade;
   real4 unity_WorldTransformParams;
-
+  //动态物体 阴影 Bake 到 LightProbe
+  float4 unity_ProbesOcclusion;
   //LightMap 数据
   float4 unity_LightmapST;
   //不会打断Srp Batch

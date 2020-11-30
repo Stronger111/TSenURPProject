@@ -32,12 +32,14 @@ int GetDirectionalLightCount()
 DirectionalShadowData GetDirectionalShadowData(int lightIndex,ShadowData shadowData)
 {
    DirectionalShadowData data;
-   //阴影强度
-   data.strength=_DirectionalLightShadowData[lightIndex].x*shadowData.strength;
+   //阴影强度 *shadowData.strength 后面进行实时阴影到Bake 阴影过渡
+   data.strength=_DirectionalLightShadowData[lightIndex].x;
    //+Cascade Index索引
    data.tileIndex=_DirectionalLightShadowData[lightIndex].y+shadowData.cascadeIndex;
    //Noraml Bias
    data.normalBias=_DirectionalLightShadowData[lightIndex].z;
+   //Shadow Mask
+   data.shadowMaskChannel=_DirectionalLightShadowData[lightIndex].w;
    return data;
 }
 

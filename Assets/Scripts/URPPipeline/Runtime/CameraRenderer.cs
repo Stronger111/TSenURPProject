@@ -86,10 +86,11 @@ public partial class CameraRenderer
     {
         //先画不透明物体 顺序是从前往后画 不透明 在半透明物体
         var sortingSettings = new SortingSettings(camera) { criteria=SortingCriteria.CommonOpaque};
-        //开启动态合批 关闭GPU Instancing Draw unlitShader 和 litShaderTagId LightMap LightProbe LightProbeVolume
+        //开启动态合批 关闭GPU Instancing Draw unlitShader 和 litShaderTagId LightMap LightProbe LightProbeVolume Reflection Probe
         var drawingSettings = new DrawingSettings(unlitShaderTagId, sortingSettings) { enableDynamicBatching= useDynamicBathching, 
-            enableInstancing= useGPUInstancing,perObjectData=PerObjectData.Lightmaps | PerObjectData.LightProbe | PerObjectData.LightProbeProxyVolume
-        };
+            enableInstancing= useGPUInstancing,perObjectData=PerObjectData.ReflectionProbes | PerObjectData.Lightmaps | PerObjectData.ShadowMask | PerObjectData.LightProbe | PerObjectData.OcclusionProbe |
+            PerObjectData.LightProbeProxyVolume | PerObjectData.OcclusionProbeProxyVolume
+            }; //CPU 发送数据给GPU  动态物体ShadowMask
         drawingSettings.SetShaderPassName(1,litShaderTagId);
         var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
         //Draw Opaque Visible Renderer

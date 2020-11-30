@@ -15,8 +15,11 @@ float3 GetLighting(Surface surface,BRDF brdf,Light light)
 float3 GetLighting(Surface surfaceWS,BRDF brdf,GI gi)
 {
    ShadowData shadowData=GetShadowData(surfaceWS);
-   //循环四盏光的信息 颜色叠加 w物体本身brdf.diffuse
-   float3 color=gi.diffuse* brdf.diffuse;
+   //Debug ShadowMask
+   shadowData.shadowMask=gi.shadowMask;
+   //return gi.shadowMask.shadows.rgb;
+   //循环四盏光的信息 颜色叠加 w物体本身brdf.diffuse  gi.diffuse* brdf.diffuse
+   float3 color=IndirectBRDF(surfaceWS,brdf,gi.diffuse,gi.specular);
    for(int i=0;i<GetDirectionalLightCount();i++)
    {
       Light light=GetDirectionalLight(i,surfaceWS,shadowData);

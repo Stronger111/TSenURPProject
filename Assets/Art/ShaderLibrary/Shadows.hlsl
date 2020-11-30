@@ -21,6 +21,16 @@
 TEXTURE2D_SHADOW(_DirectionalShadowAtlas);
 #define SHADOW_SAMPLER sampler_linear_clamp_compare
 SAMPLER_CMP(SHADOW_SAMPLER);
+//ShadowMask
+struct ShadowMask
+{
+   //总是开启ShadowMask
+   bool always;
+   //是否开启distance shadow mask
+   bool distance;
+   float4 shadows;
+};
+
 //索引是由每一个片段进行决定的
 struct ShadowData
 {
@@ -29,6 +39,8 @@ struct ShadowData
    float cascadeBlend;
    //阴影强度 超过Casade 强度为0
    float strength;
+   //ShadowMask
+   ShadowMask shadowMask;
 };
 
 struct DirectionalShadowData
@@ -36,6 +48,8 @@ struct DirectionalShadowData
    float strength;
    int tileIndex;
    float normalBias;
+   //Shadow Mask 通道
+   int shadowMaskChannel;
 };
 
 CBUFFER_START(_CustomShadows)
@@ -61,6 +75,10 @@ float FadedShadowStrength(float distance,float scale,float fade)
 ShadowData GetShadowData(Surface surfaceWS)
 {
    ShadowData data;
+   //ShadowMask数据
+   data.shadowMask.always= false;
+   data.shadowMask.distance=false;
+   data.shadowMask.shadows=1.0;
    //两个Cascade的过渡
    data.cascadeBlend=1.0;
    //外层控制深度<深度显示距离才有深度强度surfaceWS.depth<_ShadowDistance?1.0:0.0
@@ -126,20 +144,53 @@ float FilterDirectionalShadow(float3 positionSTS)
       return SampleDirectionalShadowAtlas(positionSTS);
    #endif
 }
-//计算阴影的衰减
-float GetDirectionalShadowAttenuation(DirectionalShadowData directional,ShadowData global,Surface surfaceWS)
+//判断是否开启ShadowMask
+float GetBakedShadow(ShadowMask mask,int channel)
 {
-   //本物体不接受阴影 返回为1
-   #if !defined(_RECEIVE_SHADOWS)
-      return 1.0;
-   #endif
-
-   //如果阴影强度是0 总是返回1 白
-   if(directional.strength<=0.0)
+   //默认无Shadow
+   float shadow=1.0;
+   if( mask.always ||mask.distance)
    {
-      return 1.0;
+      if(channel >=0)
+      {
+          shadow=mask.shadows[channel];
+      }
    }
-   //Normal bias 偏移一个纹素大小 在世界方向上
+   return shadow;
+}
+//测试ShadowMask
+float MixMaskedAndRealtimeShadows(ShadowData global,float shadow,int shadowMaskChannel,float strength)
+{
+   float baked=GetBakedShadow(global.shadowMask,shadowMaskChannel);
+   //Always ShadowMaks
+   if(global.shadowMask.always)
+   {
+       shadow=lerp(1.0,shadow,global.strength);
+       shadow=min(baked,shadow);
+       return lerp(1.0,shadow,strength);
+   }
+
+   if(global.shadowMask.distance)
+   {
+       //阴影过渡
+       shadow=lerp(baked,shadow,global.strength);
+       return lerp(1.0,shadow,strength);
+   }
+   return lerp(1.0,shadow,strength*global.strength); //传统流程
+}
+//仅仅支持Baked 阴影 
+float GetBakedShadow(ShadowMask mask,int channel,float strength)
+{
+   if(mask.always || mask.distance)
+   {
+       return lerp(1.0,GetBakedShadow(mask,channel),strength);
+   }
+   return 1.0;
+}
+//重构 
+float GetCascadedShadow(DirectionalShadowData directional,ShadowData global,Surface surfaceWS)
+{
+    //Normal bias 偏移一个纹素大小 在世界方向上
    float3 normalBias=surfaceWS.normal*(directional.normalBias*_CascadeData[global.cascadeIndex].y);
    float3 positionSTS=mul(_DirectionalShadowMatrices[directional.tileIndex],float4(surfaceWS.position+normalBias,1.0)).xyz;
    float shadow=FilterDirectionalShadow(positionSTS);
@@ -151,6 +202,34 @@ float GetDirectionalShadowAttenuation(DirectionalShadowData directional,ShadowDa
        shadow=lerp(FilterDirectionalShadow(positionSTS),shadow,global.cascadeBlend);
    }
    //根据阴影强度进行Lerp
-   return lerp(1.0,shadow,directional.strength);
+   return shadow;
 }
+
+//计算阴影的衰减
+float GetDirectionalShadowAttenuation(DirectionalShadowData directional,ShadowData global,Surface surfaceWS)
+{
+   //本物体不接受阴影 返回为1
+   #if !defined(_RECEIVE_SHADOWS)
+      return 1.0;
+   #endif
+
+   float shadow;
+   //如果阴影强度是0 总是返回Bake阴影 
+   if(directional.strength * global.strength <=0.0)
+   {
+      return shadow=GetBakedShadow(global.shadowMask,directional.shadowMaskChannel,abs(directional.strength));
+   }else
+   {
+       shadow=GetCascadedShadow(directional,global,surfaceWS);
+       //测试
+       shadow=MixMaskedAndRealtimeShadows(global,shadow,directional.shadowMaskChannel,directional.strength);
+       shadow=lerp(1.0,shadow,directional.strength);
+   }
+  
+   //根据阴影强度进行Lerp
+   return shadow;
+}
+
+
+
 #endif
