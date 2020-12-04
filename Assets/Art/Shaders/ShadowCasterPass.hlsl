@@ -48,7 +48,8 @@ void ShadowCasterPassFragment(Varyings input)
    ClipLOD(input.positionCS.xy, unity_LODFade.x);
    //float4 baseMap=SAMPLE_TEXTURE2D(_BaseMap,sampler_BaseMap,input.baseUV);
    //float4 baseColor= UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_BaseColor);
-   float4 base =GetBase(input.baseUV);
+   InputConfig config = GetInputConfig(input.baseUV);
+   float4 base =GetBase(config);
    #if defined(_SHADOWS_CLIP)
       clip(base.a-GetCutoff(input.baseUV));
    #elif defined(_SHADOWS_DITHER)

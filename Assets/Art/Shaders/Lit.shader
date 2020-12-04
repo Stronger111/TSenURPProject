@@ -4,19 +4,39 @@
     {
         _BaseMap("Texture",2D)="white"{}
         _BaseColor("Color",Color)=(0.5,0.5,0.5,1.0) //灰度颜色
+        [Toggle(_NORMAL_MAP)] _NormalMapToggle ("Normal Map",Float) = 0
+        [NoScaleOffset] _NormalMap ("Normals",2D) = "bump" {}
+        _NormalScale("Normal Scale",Range(0,1)) = 1
         _Cutoff ("Alpha Cutoff",Range(0.0,1.0)) = 0.5
         //是否开启 Alpha Clipping
         [Toggle(_CLIPPING)]_Clipping ("Alpha Clipping",Float) =0
         [Toggle(_RECEIVE_SHADOWS)] _ReceiveShadows ("Receive Shadows",Float) = 1
         //阴影的模式
         [KeywordEnum(On,Clip,Dither,Off)] _Shadows ("Shadows",Float) =0
+        //遮罩纹理开关
+        [Toggle(_MASK_MAP)] _MaskMapToggle ("Mask Map",Float) = 0
+        //Mask纹理
+        [NoScaleOffset] _MaskMap ("Mask (MODS)",2D) = "white" {} 
         //Metallic
         _Metallic ("Metallic",Range(0,1)) = 0
+        //遮挡强度
+        _Occlusion ("Occlusion",Range(0,1)) =1
         //光滑度
         _Smoothness("Smoothness",Range(0,1)) = 0.5
+        //菲涅尔
+        _Fresnel("Fresnel",Range(0,1))=1
 		//自发光
 		[NoScaleOffset] _EmissionMap ("Emission",2D) ="white" {}
 		[HDR] _EmissionColor ("Emission",Color) = (0,0,0,0)
+        [Toggle(_DETAIL_MAP)] _DetailMapToggle ("Detail Maps",Float) = 0
+        _DetailMap ("Details",2D)= "linearGrey"{}
+        //细节法线
+        [NoScaleOffset] _DetailNormalMap ("Detail Normals",2D) = "bump" {}
+        //细节太强 调整细节强度
+        _DetailAlbedo("Detail Albedo",Range(0,1))=1
+        //细节粗糙度
+        _DetailSmoothness("Detail Smoothness",Range(0,1))=1
+        _DetailNormalScale("Detail Normal Scale",Range(0,1)) = 1
 		[HideInInspector] _MainTex ("Texture for Lightmap",2D) = "white" {}
 		[HideInInspector] _Color ("Color for Lightmap",Color)=(0.5,0.5,0.5,1.0)
 		[Toggle(_PREMULTIPLY_ALPHA)] _PremulAlpha("Premultiply Alpha",Float)=0
@@ -39,6 +59,9 @@
             ZWrite [_ZWrite]
             HLSLPROGRAM
             #pragma target 3.5
+            #pragma shader_feature _NORMAL_MAP  //法线纹理
+            #pragma shader_feature _MASK_MAP
+            #pragma shader_feature _DETAIL_MAP
             #pragma shader_feature _CLIPPING
             //接收阴影
             #pragma shader_feature _RECEIVE_SHADOWS

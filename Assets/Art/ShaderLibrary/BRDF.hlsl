@@ -20,15 +20,19 @@ struct BRDF
    float roughness;
    //根据粗糙度 采取正确的MipMap
    float perceptualRoughness;
+   //菲涅尔反射
+   float fresnel;
 };
 //Indirect BRDF IBL
 float3 IndirectBRDF(Surface surface,BRDF brdf,float3 diffuse,float3 specular)
 {
+   //菲涅尔 //
+   float fresnelStrength=surface.fresnelStrength*Pow4(1.0-saturate(dot(surface.normal,surface.viewDirection)));
     //反射
-    float3 reflection=specular*brdf.specular;
+    float3 reflection=specular*lerp(brdf.specular,brdf.fresnel,fresnelStrength) ;
     //越粗糙反射越弱
     reflection /=brdf.roughness*brdf.roughness+1.0;
-    return diffuse*brdf.diffuse+reflection;
+    return (diffuse*brdf.diffuse+reflection)*surface.occlusion;
 }
 
 BRDF GetBRDF(Surface surface,bool applyAlphaToDiffuse=false)
@@ -46,6 +50,8 @@ BRDF GetBRDF(Surface surface,bool applyAlphaToDiffuse=false)
    brdf.perceptualRoughness=PerceptualSmoothnessToPerceptualRoughness(surface.smoothness);
    //粗糙度 Unity
    brdf.roughness=PerceptualRoughnessToRoughness(brdf.perceptualRoughness);
+   //菲涅尔
+   brdf.fresnel=saturate(surface.smoothness+1.0-oneMinusReflectivity);
    return brdf;
 }
 //

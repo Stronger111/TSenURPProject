@@ -25,6 +25,13 @@ float3 GetLighting(Surface surfaceWS,BRDF brdf,GI gi)
       Light light=GetDirectionalLight(i,surfaceWS,shadowData);
       color+=GetLighting(surfaceWS,brdf,light);
    }
+
+   //其他灯光计算
+   for(int j=0;j<GetOtherLightCount();j++)
+   {
+       Light light=GetOtherLight(j,surfaceWS,shadowData);
+       color+=GetLighting(surfaceWS,brdf,light  );
+   }
    return color;
 }
 

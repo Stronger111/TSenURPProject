@@ -36,12 +36,13 @@ Varyings MetaPassVertex(Attributes input)
 //片元着色器
 float4 MetaPassFragment(Varyings input) :SV_TARGET
 {
-   float4 base = GetBase(input.baseUV);
+   InputConfig c=GetInputConfig(input.baseUV);
+   float4 base = GetBase(c);
    Surface surface;
    ZERO_INITIALIZE(Surface,surface);
    surface.color=base.rgb;
-   surface.metallic=GetMetallic(input.baseUV);
-   surface.smoothness=GetSmoothness(input.baseUV);
+   surface.metallic=GetMetallic(c);
+   surface.smoothness=GetSmoothness(c);
    BRDF brdf=GetBRDF(surface);
    float4 meta=0.0;
    //true
@@ -52,7 +53,7 @@ float4 MetaPassFragment(Varyings input) :SV_TARGET
 	  meta.rgb=min(PositivePow(meta.rgb,unity_OneOverOutputBoost),unity_MaxOutputValue);
    }else if(unity_MetaFragmentControl.y) //Bake 自发光
    {
-       meta=float4(GetEmission(input.baseUV),1.0);
+       meta=float4(GetEmission(c),1.0);
    }
    return meta;
 } 

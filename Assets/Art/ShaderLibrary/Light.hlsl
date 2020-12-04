@@ -9,6 +9,8 @@ struct Light
 };
 
 #define MAX_DIRECTIONAL_LIGHT_COUNT 4
+//其他灯光
+#define MAX_OTHER_LIGHT_COUNT 64
 
 //灯光数据
 CBUFFER_START(_CustomLight)
@@ -21,12 +23,26 @@ CBUFFER_START(_CustomLight)
   float4 _DirectionalLightDirections[MAX_DIRECTIONAL_LIGHT_COUNT];
   //阴影
   float4 _DirectionalLightShadowData[MAX_DIRECTIONAL_LIGHT_COUNT];
+
+  //其他灯光
+  int _OtherLightCount;
+  float4 _OtherLightColors[MAX_OTHER_LIGHT_COUNT];
+  float4 _OtherLightPositions[MAX_OTHER_LIGHT_COUNT];
+  //其他灯光方向
+  float4 _OtherLightDirections[MAX_OTHER_LIGHT_COUNT];
+  //聚光灯角度
+  float4 _OtherLightSpotAngles[MAX_OTHER_LIGHT_COUNT];
 CBUFFER_END
 
 ///获取灯光的数量
 int GetDirectionalLightCount()
 {
    return _DirectionalLightCount;
+}
+//其他灯光数量
+int GetOtherLightCount()
+{
+   return _OtherLightCount;
 }
 //获取方向光阴影数据
 DirectionalShadowData GetDirectionalShadowData(int lightIndex,ShadowData shadowData)
@@ -55,4 +71,21 @@ Light GetDirectionalLight(int index,Surface surfaceWS,ShadowData shadowData)
    return light;
 }
 
+//其他光源数据
+Light GetOtherLight(int index,Surface surfaceWS,ShadowData shadowData)
+{
+    Light light;
+    light.color=_OtherLightColors[index].rgb;
+    float3 ray=_OtherLightPositions[index].xyz-surfaceWS.position;
+    light.direction=normalize(ray);
+    //点光源距离衰减
+    float distanceSqr=max(dot(ray,ray),0.00001);
+    //范围过渡
+    float rangeAttenuation=Square(saturate(1.0-Square(distanceSqr*_OtherLightPositions[index].w)));
+    //聚光灯衰减
+    float4 spotAngles=_OtherLightSpotAngles[index];
+    float spotAttenuation=saturate(dot(_OtherLightDirections[index].xyz,light.direction)*spotAngles.x+spotAngles.y);
+    light.attenuation=spotAttenuation*rangeAttenuation/distanceSqr;
+    return light;
+}
 #endif
