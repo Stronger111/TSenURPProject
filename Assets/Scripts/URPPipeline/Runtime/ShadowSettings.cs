@@ -26,6 +26,13 @@ public class ShadowSettings
     /// </summary>
     public Directional directional = new Directional { atlasSize=TextureSize._1024,cascadeCount=4,cascadeRatio1=0.1f,cascadeRatio2=0.25f,cascadeRatio3=0.5f,cascadeFade=0.1f,
     cascadeBlend=CascadeBlendMode.Hard};
+    /// <summary>
+    /// 其他灯光设置
+    /// </summary>
+    public Other other = new Other { 
+        atlasSize=TextureSize._1024,
+        filter=FilterMode.PCF2x2
+        };
  
     /// <summary>
     /// 单张纹理包含多个Shadow Map
@@ -58,6 +65,12 @@ public class ShadowSettings
         /// 混合模式
         /// </summary>
         public CascadeBlendMode cascadeBlend;
+    }
+    [System.Serializable]
+    public struct Other
+    {
+        public TextureSize atlasSize;
+        public FilterMode filter;
     }
 }
 

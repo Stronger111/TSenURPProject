@@ -33,11 +33,23 @@ public partial class CameraRenderer
     static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit"),
         litShaderTagId=new ShaderTagId("CustomLit");
     #endregion
-    public void Render(ScriptableRenderContext contex,Camera camera,bool useDynamicBatching,bool useGPUInstancing,
-        ShadowSettings shadowSettings)
+    #region 后期配置
+    PostFXStack postFXStack = new PostFXStack();
+    static int frameBufferId = Shader.PropertyToID("_CameraFrameBuffer");
+    bool useHDR;
+    #endregion
+    #region 多摄像机
+    static CameraSettings defaultCameraSettings = new CameraSettings();
+    #endregion
+    public void Render(ScriptableRenderContext contex,Camera camera,bool allowHDR, bool useDynamicBatching,bool useGPUInstancing,bool useLightsPerObject,
+        ShadowSettings shadowSettings,PostFXSettings postFXSettings,int colorLUTResolution)
     {
         this.context = contex;
         this.camera = camera;
+
+        var crpCamera = camera.GetComponent<CustomRenderPipelineCamera>();
+        CameraSettings cameraSettings = crpCamera!=null? crpCamera.Settings : defaultCameraSettings;
+
         //每个摄像机有自己的Buffer
         PrepareBuffer();
         //UI
@@ -47,20 +59,29 @@ public partial class CameraRenderer
         {
             return;
         }
+        useHDR = allowHDR && camera.allowHDR;
         buffer.BeginSample(SampleName);
         ExcuteBuffer();
         //灯光配置 添加阴影参数
-        lighting.Setup(contex,cullingResults,shadowSettings);
+        lighting.Setup(contex,cullingResults,shadowSettings,useLightsPerObject);
+        //后期配置
+        postFXStack.Setup(context,camera,postFXSettings,useHDR,colorLUTResolution,cameraSettings.finalBlendMode);
         buffer.EndSample(SampleName);
         //常规渲染
         Setup();
-        DrawVisibleGeometry(useDynamicBatching, useGPUInstancing);
+        DrawVisibleGeometry(useDynamicBatching, useGPUInstancing, useLightsPerObject);
         //Un support shader
         DrawUnsupportedShaders();
         //Gizmos 线
-        DrawGizmos();
+        DrawGizmosBeforeFX();
+        if(postFXStack.IsActive)
+        {
+            postFXStack.Render(frameBufferId);
+        }
+        DrawGizmosAfterFX();
         //释放纹理资源
-        lighting.Cleanup();
+        Cleanup();
+        //lighting.Cleanup();
         Submit();
     }
     /// <summary>
@@ -82,15 +103,16 @@ public partial class CameraRenderer
     /// <summary>
     /// 画可见的几何体
     /// </summary>
-    void DrawVisibleGeometry(bool useDynamicBathching,bool useGPUInstancing)
+    void DrawVisibleGeometry(bool useDynamicBathching,bool useGPUInstancing,bool useLightsPerObject)
     {
+        PerObjectData lightsPerObjectFlags = useLightsPerObject ? PerObjectData.LightData | PerObjectData.LightIndices : PerObjectData.None;
         //先画不透明物体 顺序是从前往后画 不透明 在半透明物体
         var sortingSettings = new SortingSettings(camera) { criteria=SortingCriteria.CommonOpaque};
         //开启动态合批 关闭GPU Instancing Draw unlitShader 和 litShaderTagId LightMap LightProbe LightProbeVolume Reflection Probe
         var drawingSettings = new DrawingSettings(unlitShaderTagId, sortingSettings) { enableDynamicBatching= useDynamicBathching, 
             enableInstancing= useGPUInstancing,perObjectData=PerObjectData.ReflectionProbes | PerObjectData.Lightmaps | PerObjectData.ShadowMask | PerObjectData.LightProbe | PerObjectData.OcclusionProbe |
-            PerObjectData.LightProbeProxyVolume | PerObjectData.OcclusionProbeProxyVolume
-            }; //CPU 发送数据给GPU  动态物体ShadowMask
+            PerObjectData.LightProbeProxyVolume | PerObjectData.OcclusionProbeProxyVolume | lightsPerObjectFlags
+        }; //CPU 发送数据给GPU  动态物体ShadowMask
         drawingSettings.SetShaderPassName(1,litShaderTagId);
         var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
         //Draw Opaque Visible Renderer
@@ -116,6 +138,18 @@ public partial class CameraRenderer
         //设置摄像机属性给全局shader，不设置摄像机旋转 天空球并不会旋转
         context.SetupCameraProperties(camera);
         CameraClearFlags flags = camera.clearFlags;
+        //后期处理
+        if(postFXStack.IsActive)
+        {
+            if(flags > CameraClearFlags.Color)
+            {
+                flags = CameraClearFlags.Color;
+            }
+            //是否使用HDR 得到HDR渲染格式的RT
+            buffer.GetTemporaryRT(frameBufferId,camera.pixelWidth,camera.pixelHeight,32,FilterMode.Bilinear,
+                useHDR? RenderTextureFormat.DefaultHDR:RenderTextureFormat.Default);
+            buffer.SetRenderTarget(frameBufferId,RenderBufferLoadAction.DontCare,RenderBufferStoreAction.Store);
+        }
         //第三个参数背景清除 Color.clear (0,0,0,0) 完全透明 Profiler
         buffer.ClearRenderTarget(flags<=CameraClearFlags.Depth, flags==CameraClearFlags.Color,flags==CameraClearFlags.Color?camera.backgroundColor.linear: Color.clear);
 
@@ -128,5 +162,14 @@ public partial class CameraRenderer
         //Buffer进行操作执行
         ExcuteBuffer();
         context.Submit();
+    }
+
+    void Cleanup()
+    {
+        lighting.Cleanup();
+        if(postFXStack.IsActive)
+        {
+            buffer.ReleaseTemporaryRT(frameBufferId);
+        }
     }
 }

@@ -33,39 +33,48 @@ public class Lighting : MonoBehaviour
                otherLightColorsId=Shader.PropertyToID("_OtherLightColors"),
                otherLightPositionsId=Shader.PropertyToID("_OtherLightPositions"),
                otherLightDirectionsId=Shader.PropertyToID("_OtherLightDirections"),
-               otherLightSpotAnglesId=Shader.PropertyToID("_OtherLightSpotAngles");
+               otherLightSpotAnglesId=Shader.PropertyToID("_OtherLightSpotAngles"),
+               otherLightShadowDataId=Shader.PropertyToID("_OtherLightShadowData");
     //其他灯光
     static Vector4[] otherLightColors = new Vector4[maxOtherLightCount],
                      otherLightPositions=new Vector4[maxOtherLightCount],
                      otherLightDirections=new Vector4[maxOtherLightCount],
-                     otherLightSpotAngles=new Vector4[maxOtherLightCount];
+                     otherLightSpotAngles=new Vector4[maxOtherLightCount],
+                     otherLightShadowData=new Vector4[maxOtherLightCount];
+
+    static string lightsPerObjectKeyword = "_LIGHTS_PER_OBJECT";
 
     CullingResults cullingResults;
     /// <summary>
     /// 阴影渲染
     /// </summary>
     Shadows shadows = new Shadows();
-    public void Setup(ScriptableRenderContext context,CullingResults cullingResults,ShadowSettings shadowSettings)
+    public void Setup(ScriptableRenderContext context,CullingResults cullingResults,ShadowSettings shadowSettings
+        ,bool useLightsPerObject)
     {
         this.cullingResults = cullingResults;
         buffer.BeginSample(bufferName);
         //阴影提前设置
         shadows.Setup(context,cullingResults,shadowSettings);
         //设置灯光
-        SetupLights();
+        SetupLights(useLightsPerObject);
         //渲染阴影
         shadows.Render();
         buffer.EndSample(bufferName);
         context.ExecuteCommandBuffer(buffer);
         buffer.Clear();
     }
-    void SetupLights()
+
+    void SetupLights(bool useLightsPerObject)
     {
+        NativeArray<int> indexMap =useLightsPerObject ? cullingResults.GetLightIndexMap(Allocator.Temp) : default;
         NativeArray<VisibleLight> visibleLights = cullingResults.visibleLights;
         //方向光 和其他灯光
         int dirLightCount = 0,otherLightCount=0;
-        for(int i=0;i<visibleLights.Length;i++)
+        int i;
+        for(i=0;i<visibleLights.Length;i++)
         {
+            int newIndex = -1;
             VisibleLight visibleLight = visibleLights[i];
             //if(visibleLight.lightType==LightType.Directional)
             //{
@@ -79,23 +88,44 @@ public class Lighting : MonoBehaviour
                 case LightType.Directional:
                     if(dirLightCount<maxDirLightCount)
                     {
-                        SetupDirectionalLight(dirLightCount++, ref visibleLight);
+                        SetupDirectionalLight(dirLightCount++,i, ref visibleLight);
                     }
                     break;
                 case LightType.Point:
                     if(otherLightCount<maxOtherLightCount)
                     {
-                        SetupPointLight(otherLightCount++,ref visibleLight);
+                        newIndex = otherLightCount;
+                        SetupPointLight(otherLightCount++,i,ref visibleLight);
                     }
                     break;
                 case LightType.Spot:
                     if(otherLightCount<maxOtherLightCount)
                     {
-                        SetupSpotLight(otherLightCount++,ref visibleLight);
+                        newIndex = otherLightCount;
+                        SetupSpotLight(otherLightCount++,i,ref visibleLight);
                     }
                     break;
             }
+            if(useLightsPerObject)
+            {
+                indexMap[i] = newIndex;
+            }
         }
+        if(useLightsPerObject)
+        {
+            for(;i<indexMap.Length;i++)
+            {
+                //-1物体不受灯光影响
+                indexMap[i] = -1;
+            }
+            cullingResults.SetLightIndexMap(indexMap);
+            indexMap.Dispose();
+            Shader.EnableKeyword(lightsPerObjectKeyword);
+        }else
+        {
+            Shader.DisableKeyword(lightsPerObjectKeyword);
+        }
+
         //设置GPU Buffer
         buffer.SetGlobalInt(dirLightCountId, dirLightCount);
         if (dirLightCount>0)
@@ -115,10 +145,12 @@ public class Lighting : MonoBehaviour
             buffer.SetGlobalVectorArray(otherLightDirectionsId,otherLightDirections);
             //聚光灯角度
             buffer.SetGlobalVectorArray(otherLightSpotAnglesId,otherLightSpotAngles);
+            //阴影数据
+            buffer.SetGlobalVectorArray(otherLightShadowDataId,otherLightShadowData);
         }
        
     }
-    void SetupDirectionalLight(int index,ref VisibleLight visibleLight)
+    void SetupDirectionalLight(int index,int visibleIndex,ref VisibleLight visibleLight)
     {
         //Light light = RenderSettings.sun;
         //buffer.SetGlobalVector(dirLightColorId,light.color.linear*light.intensity);
@@ -128,26 +160,32 @@ public class Lighting : MonoBehaviour
         //知乎解释visibleLight.localToWorldMatrix.GetColumn(2)
         dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
         //阴影保存
-        dirLightShadowData[index]=shadows.ReserveDirectionalShadows(visibleLight.light,index);
+        dirLightShadowData[index]=shadows.ReserveDirectionalShadows(visibleLight.light, visibleIndex);
     }
     /// <summary>
     /// 设置点光源数据
     /// </summary>
     /// <param name="index">索引</param>
     /// <param name="visibleLight">可见光数据</param>
-    void SetupPointLight(int index,ref VisibleLight visibleLight)
+    void SetupPointLight(int index,int visibleIndex,ref VisibleLight visibleLight)
     {
         otherLightColors[index] = visibleLight.finalColor;
         Vector4 position = visibleLight.localToWorldMatrix.GetColumn(3);
         position.w = 1f / Mathf.Max(visibleLight.range*visibleLight.range,0.00001f); //w分量添加灯光范围
         otherLightPositions[index] = position;
+        //点光源不受角度影响
+        otherLightSpotAngles[index] = new Vector4(0f,1f);
+
+        //阴影
+        Light light = visibleLight.light;
+        otherLightShadowData[index] = shadows.ReserveOtherShadows(light, visibleIndex);
     }
     /// <summary>
     /// 设置聚光灯数据
     /// </summary>
     /// <param name="index"></param>
     /// <param name="visibleLight"></param>
-    void SetupSpotLight(int index, ref VisibleLight visibleLight)
+    void SetupSpotLight(int index,int visibleIndex, ref VisibleLight visibleLight)
     {
         otherLightColors[index] = visibleLight.finalColor;
         Vector4 position = visibleLight.localToWorldMatrix.GetColumn(3);
@@ -160,6 +198,9 @@ public class Lighting : MonoBehaviour
         float outerCos = Mathf.Cos(Mathf.Deg2Rad*0.5f*visibleLight.spotAngle);
         float angleRangeInv = 1f / Mathf.Max(innerCos-outerCos,0.001f);
         otherLightSpotAngles[index] = new Vector4(angleRangeInv,-outerCos*angleRangeInv);
+
+        //阴影
+        otherLightShadowData[index] = shadows.ReserveOtherShadows(light, visibleIndex);
     }
     public void Cleanup()
     {

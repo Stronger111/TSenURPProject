@@ -8,7 +8,8 @@ using UnityEditor;
 /// </summary>
 partial class CameraRenderer 
 {
-    partial void DrawGizmos();
+    partial void DrawGizmosBeforeFX();
+    partial void DrawGizmosAfterFX();
     partial void DrawUnsupportedShaders();
     partial void PrepareForSceneWindow();
     /// <summary>
@@ -43,14 +44,20 @@ partial class CameraRenderer
     /// <summary>
     /// 点击摄像机的显示出来的虚线
     /// </summary>
-    partial void DrawGizmos()
+    partial void DrawGizmosBeforeFX()
     {
         if(Handles.ShouldRenderGizmos())
         {
             context.DrawGizmos(camera,GizmoSubset.PreImageEffects);
+        }
+    }
+    partial void DrawGizmosAfterFX()
+    {
+        if (Handles.ShouldRenderGizmos())
+        {
             //ImageEffects之后
             context.DrawGizmos(camera, GizmoSubset.PostImageEffects);
-        }
+        } 
     }
     /// <summary>
     /// Scene UI

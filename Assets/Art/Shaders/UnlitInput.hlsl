@@ -1,6 +1,8 @@
 ﻿#ifndef CUSTOM_LIT_INPUT_INCLUDED
 #define CUSTOM_LIT_INPUT_INCLUDED
 
+#define INPUT_PROP(name) UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,name)
+
 //Alpha Blend Texture
 TEXTURE2D(_BaseMap);
 SAMPLER(sampler_BaseMap);
@@ -9,7 +11,7 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
    UNITY_DEFINE_INSTANCED_PROP(float4,_BaseMap_ST)
    UNITY_DEFINE_INSTANCED_PROP(float4,_BaseColor)
    UNITY_DEFINE_INSTANCED_PROP(float,_Cutoff)
-   //UNITY_DEFINE_INSTANCED_PROP(float,_Metallic)
+   UNITY_DEFINE_INSTANCED_PROP(float,_ZWrite)
    //UNITY_DEFINE_INSTANCED_PROP(float,_Smoothness)
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
@@ -53,6 +55,11 @@ float3 GetEmission (InputConfig c) {
 //菲尼尔
 float GetFresnel (float2 baseUV) {
 	return 0.0;
+}
+//_ZWrite 写入表面是不透明得表面
+float GetFinalAlpha(float alpha)
+{
+   return INPUT_PROP(_ZWrite) ? 1.0 : alpha;
 }
 //金属度
 //float GetMetallic(float2 baseUV)

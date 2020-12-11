@@ -12,9 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3561e73f76b513144b3cdd7977add5b2, type: 3}
   m_Name: TSen Render Pipeline Asset
   m_EditorClassIdentifier: 
+  allowHDR: 1
   useDynamicBatching: 0
-  useGPUInstancing: 1
+  useGPUInstancing: 0
   useSRPBatcher: 0
+  useLightsPerObject: 1
   shadows:
     maxDistance: 50
     distanceFade: 0.332
@@ -27,3 +29,8 @@ MonoBehaviour:
       cascadeRatio3: 0.5
       cascadeFade: 0.466
       cascadeBlend: 0
+    other:
+      atlasSize: 1024
+      filter: 0
+  postFXSettings: {fileID: 11400000, guid: ddacf7ad8e2c51346a2f53a88e02dc00, type: 2}
+  colorLUTResolution: 32

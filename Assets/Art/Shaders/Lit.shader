@@ -55,7 +55,7 @@
 
         Pass
         {
-            Blend [_SrcBlend] [_DstBlend]
+            Blend [_SrcBlend] [_DstBlend] ,One OneMinusSrcAlpha
             ZWrite [_ZWrite]
             HLSLPROGRAM
             #pragma target 3.5
@@ -78,7 +78,10 @@
             #pragma multi_compile_instancing
             //LOD Cross-Fade
             #pragma multi_compile _ LOD_FADE_CROSSFADE
-
+            //每个灯光索引
+            #pragma multi_compile _ _LIGHTS_PER_OBJECT
+            //其他灯光阴影过滤方式
+            #pragma multi_compile _ _OTHER_PCF3 _OTHER_PCF5 _OTHER_PCF7
             #pragma vertex LitPassVertex
             #pragma fragment LitPassFragment
             #include "LitPass.hlsl"
