@@ -21,6 +21,8 @@ struct Surface
    float fresnelStrength;
    //抖动值
    float dither;
+   //
+   uint renderingLayerMask;
 };
 
 #endif

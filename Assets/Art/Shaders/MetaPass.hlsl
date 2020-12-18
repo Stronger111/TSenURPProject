@@ -16,7 +16,7 @@ struct Attributes
 //输出结构
 struct Varyings
 {
-   float4 positionCS : SV_POSITION;
+   float4 positionCS_SS : SV_POSITION;
    float2 baseUV : VAR_BASE_UV;
 };
 //控制
@@ -29,14 +29,14 @@ Varyings MetaPassVertex(Attributes input)
     Varyings output;
 	input.positionOS.xy=input.lightMapUV*unity_LightmapST.xy+unity_LightmapST.zw;
 	input.positionOS.z=input.positionOS.z > 0.0 ? FLT_MIN : 0.0;
-    output.positionCS=TransformWorldToHClip(input.positionOS);
+    output.positionCS_SS=TransformWorldToHClip(input.positionOS);
     output.baseUV=TransformBaseUV(input.baseUV);
     return output;
 }
 //片元着色器
 float4 MetaPassFragment(Varyings input) :SV_TARGET
 {
-   InputConfig c=GetInputConfig(input.baseUV);
+   InputConfig c=GetInputConfig(input.positionCS_SS,input.baseUV);
    float4 base = GetBase(c);
    Surface surface;
    ZERO_INITIALIZE(Surface,surface);

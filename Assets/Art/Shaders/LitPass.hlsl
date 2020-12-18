@@ -41,7 +41,7 @@ struct Attributes
 //输出结构
 struct Varyings
 {
-   float4 positionCS : SV_POSITION;
+   float4 positionCS_SS : SV_POSITION;
    float3 positionWS : VAR_POSITION;
    float2 baseUV : VAR_BASE_UV;
    #if defined(_DETAIL_MAP)
@@ -65,12 +65,12 @@ Varyings LitPassVertex(Attributes input)
     //转换
     TRANSFER_GI_DATA(input,output);
     output.positionWS=TransformObjectToWorld(input.positionOS.xyz);
-    output.positionCS=TransformWorldToHClip(output.positionWS);
+    output.positionCS_SS=TransformWorldToHClip(output.positionWS);
     //反向Z
     #if UNITY_REVERSED_Z
-       output.positionCS.z=min(output.positionCS.z,output.positionCS.w * UNITY_NEAR_CLIP_VALUE);//近平面
+       output.positionCS_SS.z=min(output.positionCS_SS.z,output.positionCS_SS.w * UNITY_NEAR_CLIP_VALUE);//近平面
     #else
-       output.positionCS.z=max(output.positionCS.z,output.positionCS.w * UNITY_NEAR_CLIP_VALUE);//近平面
+       output.positionCS_SS.z=max(output.positionCS_SS.z,output.positionCS_SS.w * UNITY_NEAR_CLIP_VALUE);//近平面
     #endif
 
     output.normalWS=TransformObjectToWorldNormal(input.normalOS);
@@ -94,11 +94,11 @@ float4 LitPassFragment(Varyings input) :SV_TARGET
    //#if defined(LOD_FADE_CROSSFADE)
    //   return -unity_LODFade.x;
    //#endif
-   ClipLOD(input.positionCS.xy,unity_LODFade.x);
    //float4 baseMap=SAMPLE_TEXTURE2D(_BaseMap,sampler_BaseMap,input.baseUV); baseMap*baseColor
    //float4 baseColor= UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_BaseColor);
    //UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_Cutoff)
-   InputConfig config=GetInputConfig(input.baseUV);
+   InputConfig config=GetInputConfig(input.positionCS_SS,input.baseUV);
+   ClipLOD(config.fragment,unity_LODFade.x);
    #if defined(_MASK_MAP)
       config.useMask=true;
    #endif
@@ -136,7 +136,9 @@ float4 LitPassFragment(Varyings input) :SV_TARGET
    //菲涅尔
    surface.fresnelStrength=GetFresnel(config);
    //抖动
-   surface.dither=InterleavedGradientNoise(input.positionCS.xy,0);
+   surface.dither=InterleavedGradientNoise(config.fragment.positionSS,0);
+   //渲染层 asuint 无符号输入
+   surface.renderingLayerMask=asuint(unity_RenderingLayer.x);
    #if defined(_PREMULTIPLY_ALPHA)
      //Surface->BRDF
      BRDF brdf=GetBRDF(surface,true);

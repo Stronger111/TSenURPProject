@@ -24,7 +24,7 @@ struct Attributes
 //输出结构
 struct Varyings
 {
-   float4 positionCS : SV_POSITION;
+   float4 positionCS_SS : SV_POSITION;
    float2 baseUV : VAR_BASE_UV;
    UNITY_VERTEX_INPUT_INSTANCE_ID
 };
@@ -37,13 +37,13 @@ Varyings ShadowCasterPassVertex(Attributes input)
     UNITY_SETUP_INSTANCE_ID(input);
     UNITY_TRANSFER_INSTANCE_ID(input,output);
     float3 positionWS=TransformObjectToWorld(input.positionOS.xyz);
-    output.positionCS=TransformWorldToHClip(positionWS);
+    output.positionCS_SS=TransformWorldToHClip(positionWS);
     if(_ShadowPancaking)
     {
        #if UNITY_REVERSED_Z
-          output.positionCS.z=min(output.positionCS.z,output.positionCS.w*UNITY_NEAR_CLIP_VALUE);
+          output.positionCS_SS.z=min(output.positionCS_SS.z,output.positionCS_SS.w*UNITY_NEAR_CLIP_VALUE);
        #else
-          output.positionCS.z=max(output.positionCS.z,output.positionCS.w*UNITY_NEAR_CLIP_VALUE);
+          output.positionCS_SS.z=max(output.positionCS_SS.z,output.positionCS_SS.w*UNITY_NEAR_CLIP_VALUE);
        #endif
     }
     //顶点 访问 _BaseMap_ST
@@ -55,10 +55,10 @@ Varyings ShadowCasterPassVertex(Attributes input)
 void ShadowCasterPassFragment(Varyings input)
 {
    UNITY_SETUP_INSTANCE_ID(input);
-   ClipLOD(input.positionCS.xy, unity_LODFade.x);
    //float4 baseMap=SAMPLE_TEXTURE2D(_BaseMap,sampler_BaseMap,input.baseUV);
    //float4 baseColor= UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_BaseColor);
-   InputConfig config = GetInputConfig(input.baseUV);
+   InputConfig config = GetInputConfig(input.positionCS_SS,input.baseUV);
+   ClipLOD(config.fragment, unity_LODFade.x);
    float4 base =GetBase(config);
    #if defined(_SHADOWS_CLIP)
       clip(base.a-GetCutoff(input.baseUV));

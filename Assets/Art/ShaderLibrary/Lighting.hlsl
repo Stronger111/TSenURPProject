@@ -1,6 +1,11 @@
 ﻿#ifndef CUSTOM_LIGHTING_INCLUDE
 #define CUSTOM_LIGHTING_INCLUDE
 
+bool RenderingLayersOverlap(Surface surface,Light light)
+{
+   return (surface.renderingLayerMask & light.renderingLayerMask ) != 0;
+}
+
 float3 IncomingLight(Surface surface,Light light)
 {
    //Diffuse Color  法线和灯光方向  阴影是乘到漫反射上面
@@ -23,7 +28,10 @@ float3 GetLighting(Surface surfaceWS,BRDF brdf,GI gi)
    for(int i=0;i<GetDirectionalLightCount();i++)
    {
       Light light=GetDirectionalLight(i,surfaceWS,shadowData);
-      color+=GetLighting(surfaceWS,brdf,light);
+      if(RenderingLayersOverlap(surfaceWS,light))
+      {
+         color+=GetLighting(surfaceWS,brdf,light);
+      }
    }
 
    #if defined(_LIGHTS_PER_OBJECT)
@@ -31,14 +39,20 @@ float3 GetLighting(Surface surfaceWS,BRDF brdf,GI gi)
        {
           int lightIndex=unity_LightIndices[j/4][j%4];
           Light light=GetOtherLight(lightIndex,surfaceWS,shadowData);
-           color+=GetLighting(surfaceWS,brdf,light);
+          if(RenderingLayersOverlap(surfaceWS,light))
+          {
+            color+=GetLighting(surfaceWS,brdf,light);
+          }
        }
    #else
         //其他灯光计算
        for(int j=0;j<GetOtherLightCount();j++)
        {
            Light light=GetOtherLight(j,surfaceWS,shadowData);
-           color+=GetLighting(surfaceWS,brdf,light);
+           if(RenderingLayersOverlap(surfaceWS,light))
+           {
+               color+=GetLighting(surfaceWS,brdf,light);
+           }
        }
    #endif
 

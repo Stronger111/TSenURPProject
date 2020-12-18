@@ -12,7 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3561e73f76b513144b3cdd7977add5b2, type: 3}
   m_Name: TSen Render Pipeline Asset
   m_EditorClassIdentifier: 
-  allowHDR: 1
+  cameraBuffer:
+    allowHDR: 1
+    copyDepth: 1
+    copyDepthRelections: 0
   useDynamicBatching: 0
   useGPUInstancing: 0
   useSRPBatcher: 0
@@ -32,5 +35,6 @@ MonoBehaviour:
     other:
       atlasSize: 1024
       filter: 0
-  postFXSettings: {fileID: 11400000, guid: ddacf7ad8e2c51346a2f53a88e02dc00, type: 2}
+  postFXSettings: {fileID: 0}
   colorLUTResolution: 32
+  cameraRendererShader: {fileID: 4800000, guid: 352307d1f23840144814020c1ffee99e, type: 3}

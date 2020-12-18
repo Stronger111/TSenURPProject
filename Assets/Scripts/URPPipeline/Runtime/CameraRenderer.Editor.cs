@@ -16,6 +16,8 @@ partial class CameraRenderer
     /// per camera
     /// </summary>
     partial void PrepareBuffer();
+
+    //partial void DisposeForEditor();
 #if UNITY_EDITOR
     /// <summary>   
     /// TSen RP 不支持的Shader类型
@@ -41,6 +43,10 @@ partial class CameraRenderer
         buffer.name = SampleName=camera.name;
         Profiler.EndSample();
     }
+    //partial void DisposeForEditor()
+    //{
+    //    //Lightmapping.re();
+    //}
     /// <summary>
     /// 点击摄像机的显示出来的虚线
     /// </summary>
@@ -48,6 +54,12 @@ partial class CameraRenderer
     {
         if(Handles.ShouldRenderGizmos())
         {
+            //????
+            if(useIntermediateBuffer)
+            {
+                Draw(depthAttachmentId,BuiltinRenderTextureType.CameraTarget,true);
+                ExcuteBuffer();
+            }
             context.DrawGizmos(camera,GizmoSubset.PreImageEffects);
         }
     }

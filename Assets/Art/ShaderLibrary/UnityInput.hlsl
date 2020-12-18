@@ -6,7 +6,8 @@ CBUFFER_START(UnityPerDraw)
   float4x4 unity_WorldToObject;
   float4 unity_LODFade;
   real4 unity_WorldTransformParams;
-
+  //渲染层
+  float4 unity_RenderingLayer;
   //其他灯光数据
   real4 unity_LightData;
   real4 unity_LightIndices[2];
@@ -40,6 +41,11 @@ float4x4 unity_MatrixV;
 float4x4 glstate_matrix_projection;
 //世界空间摄像机位置
 float3 _WorldSpaceCameraPos;
+//????
+float4 unity_OrthoParams;
 //?????
 float4 _ProjectionParams;
+//
+float4 _ScreenParams;
+float4 _ZBufferParams;
 #endif

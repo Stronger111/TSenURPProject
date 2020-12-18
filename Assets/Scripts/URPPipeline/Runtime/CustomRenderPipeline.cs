@@ -5,7 +5,8 @@ using UnityEngine.Rendering;
 /// </summary>
 public partial class CustomRenderPipeline : RenderPipeline
 {
-    bool allowHDR;
+    CameraBufferSettings cameraBufferSettings;
+    //bool allowHDR;
     #region 配置信息
     bool useDynamicBathcing, useGPUInstancing,useLightsPerObject;
     /// <summary>
@@ -18,11 +19,11 @@ public partial class CustomRenderPipeline : RenderPipeline
     PostFXSettings postFXSettings;
     int colorLUTResolution;
     #endregion
-    public CustomRenderPipeline(bool allowHDR,bool useDynamicBathcing,bool useGPUInstancing,bool useLightsPerObject,
-        bool useSRPBatcher,ShadowSettings shadowSettings,PostFXSettings postFXSettings,int colorLUTResolution)
+    public CustomRenderPipeline(CameraBufferSettings cameraBufferSettings,bool useDynamicBathcing,bool useGPUInstancing,bool useLightsPerObject,
+        bool useSRPBatcher,ShadowSettings shadowSettings,PostFXSettings postFXSettings,int colorLUTResolution,Shader cameraRendererShader)
     {
         this.colorLUTResolution = colorLUTResolution;
-        this.allowHDR = allowHDR;
+        this.cameraBufferSettings = cameraBufferSettings;
         this.postFXSettings = postFXSettings;
         this.shadowSettings = shadowSettings;
         this.useDynamicBathcing = useDynamicBathcing;
@@ -34,17 +35,18 @@ public partial class CustomRenderPipeline : RenderPipeline
         GraphicsSettings.lightsUseLinearIntensity = true;
         //
         InitializeForEditor();
+        renderer = new CameraRenderer(cameraRendererShader);
     }
     /// <summary>
     /// 引用单个摄像机Render
     /// </summary>
-    CameraRenderer renderer = new CameraRenderer();
+    CameraRenderer renderer;
     protected override void Render(ScriptableRenderContext context, Camera[] cameras)
     {
         //遍历场景所有摄像机进行渲染,前向渲染 缺陷每个摄像机的渲染方式相同,可以让每个摄像机使用不同的渲染方式
         foreach(Camera camera in cameras)
         {
-            renderer.Render(context,camera, allowHDR, useDynamicBathcing, useGPUInstancing, 
+            renderer.Render(context,camera, cameraBufferSettings, useDynamicBathcing, useGPUInstancing, 
                 useLightsPerObject,shadowSettings,postFXSettings, colorLUTResolution);
         }
     }
