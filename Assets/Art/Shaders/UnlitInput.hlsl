@@ -87,7 +87,7 @@ float4 GetBase(InputConfig c)
    return baseMap*baseColor*c.color;
 }
 //获取Cutoff
-float GetCutoff(float2 baseUV)
+float GetCutoff(InputConfig c)
 {
     return UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_Cutoff);
 }
