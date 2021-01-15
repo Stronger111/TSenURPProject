@@ -115,6 +115,8 @@ public partial class CameraRenderer
         {
             if (camera.targetTexture)
             {
+                //Test UV
+
                 buffer.CopyTexture(colorAttachmentId,camera.targetTexture);
             }else
             {
@@ -228,7 +230,7 @@ public partial class CameraRenderer
                 RenderTextureFormat.DefaultHDR:RenderTextureFormat.Default);
             if(copyTextureSupported)
             {
-                buffer.CopyTexture(colorAttachmentId,colorTextureId);
+                buffer.CopyTexture(colorAttachmentId,0,0,colorTextureId,0,0);
             }else
             {
                 Draw(colorAttachmentId,colorTextureId);

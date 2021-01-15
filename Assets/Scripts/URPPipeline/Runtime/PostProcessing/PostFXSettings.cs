@@ -6,9 +6,18 @@ public class PostFXSettings : ScriptableObject
 {
     [SerializeField]
     Shader shader = default;
+    #region 测试Shader功能
+    [SerializeField]
+    Shader skinBlitShader = default;
+    [SerializeField]
+    Texture skinTexture = null;
+    [SerializeField]
+    Texture baseSkinTexture = null;
+    #endregion
     [System.NonSerialized]
     Material material;
-
+    [System.NonSerialized]
+    Material skinBlitMaterial;
     public Material Material
     {
         get
@@ -19,6 +28,38 @@ public class PostFXSettings : ScriptableObject
                 material.hideFlags = HideFlags.HideAndDontSave;
             }
             return material;
+        }
+    }
+    public Material SkinBlitMaterial
+    {
+        get
+        {
+            if(skinBlitMaterial == null && skinBlitShader!=null)
+            {
+                skinBlitMaterial = new Material(skinBlitShader);
+                skinBlitMaterial.hideFlags = HideFlags.HideAndDontSave;
+            }
+            return skinBlitMaterial;
+        }
+    }
+    public Texture BaseSkinTexture
+    {
+        get
+        {
+            if (baseSkinTexture != null)
+                return baseSkinTexture;
+            return null;
+        }
+    }
+    public Texture SkinTexture
+    {
+        get
+        {
+            if(skinTexture != null)
+            {
+                return skinTexture;
+            }
+            return null;
         }
     }
     [System.Serializable]

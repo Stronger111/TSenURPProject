@@ -89,6 +89,15 @@ public partial class PostFXStack
             Shader.PropertyToID("_BloomPyramid"+i);
         }
     }
+    #region 测试贴花UV
+    int sp_SrcPieceSize = Shader.PropertyToID("_SrcPieceSize");
+    int sp_RowNumAndIdx = Shader.PropertyToID("_RowNumAndIdx");
+    int sp_DestPosAndSize = Shader.PropertyToID("_DestPosAndSize");
+    int sp_RotAndScale = Shader.PropertyToID("_RotAndScale");
+    int sp_NeedMirror = Shader.PropertyToID("_NeedMirror");
+    int baseSkinRenderTextureId = Shader.PropertyToID("_BaseSkinTexture");
+    DecalUVTest decalTest;
+    #endregion
     public void Setup(ScriptableRenderContext context,Camera camera,PostFXSettings settings,
         bool useHDR,int colorLUTResolution,CameraSettings.FinalBlendMode finalBlendMode)
     {
@@ -103,12 +112,14 @@ public partial class PostFXStack
 
     public void Render(int sourceId)
     {
-        //Draw(sourceId,BuiltinRenderTextureType.CameraTarget,Pass.Copy);
-        if(DoBloom(sourceId))
+        //DrawSkinBlit(sourceId);
+        //return;
+        if (DoBloom(sourceId))
         {
             DoColorGradingToneMapping(bloomResultId);
             buffer.ReleaseTemporaryRT(bloomResultId);
-        }else
+        }
+        else
         {
             DoColorGradingToneMapping(sourceId);
         }
@@ -133,8 +144,35 @@ public partial class PostFXStack
         buffer.SetViewport(camera.pixelRect);
         buffer.DrawProcedural(Matrix4x4.identity, settings.Material, (int)Pass.Final, MeshTopology.Triangles, 3);
     }
-
-
+    /// <summary>
+    /// 测试Blit
+    /// </summary>
+    /// <param name="from"></param>
+    void DrawSkinBlit(RenderTargetIdentifier from)
+    {
+        buffer.Blit(settings.BaseSkinTexture, from);
+        context.ExecuteCommandBuffer(buffer);
+        buffer.Clear();
+        decalTest = GameObject.Find("Root").GetComponent<DecalUVTest>();
+        settings.SkinBlitMaterial.SetVector(sp_RowNumAndIdx, decalTest.spRowNumAndIdx);
+        settings.SkinBlitMaterial.SetVector(sp_DestPosAndSize, decalTest.spDestPosAndSize);
+        settings.SkinBlitMaterial.SetVector(sp_SrcPieceSize, decalTest.spSrcPieceSize);
+        settings.SkinBlitMaterial.SetVector(sp_RotAndScale, decalTest.spRotAndScale);
+        //buffer.GetTemporaryRT(baseSkinRenderTextureId, settings.BaseSkinTexture.width,settings.BaseSkinTexture.height,0,FilterMode.Bilinear,RenderTextureFormat.Default);
+        buffer.Blit(settings.SkinTexture, from, settings.SkinBlitMaterial);
+        context.ExecuteCommandBuffer(buffer);
+        buffer.Clear();
+        //buffer.SetGlobalTexture(fxSourceId, settings.SkinTexture);
+        //buffer.SetViewport(camera.pixelRect);
+        //buffer.DrawProcedural(Matrix4x4.identity,settings.SkinBlitMaterial,0,MeshTopology.Triangles, 3);
+        //context.ExecuteCommandBuffer(buffer);
+        //buffer.Clear();
+        //DrawFinal(from);
+        buffer.Blit(from, BuiltinRenderTextureType.CameraTarget);
+        context.ExecuteCommandBuffer(buffer);
+        buffer.Clear();
+        //buffer.ReleaseTemporaryRT(baseSkinRenderTextureId);
+    }
     bool DoBloom(int sourceId)
     {
         //buffer.BeginSample("Bloom");
