@@ -66,8 +66,8 @@ public partial class CameraRenderer
         this.context = contex;
         this.camera = camera;
 
-        var crpCamera = camera.GetComponent<CustomRenderPipelineCamera>();
-        CameraSettings cameraSettings = crpCamera!=null? crpCamera.Settings : defaultCameraSettings;
+        //var crpCamera = camera.GetComponent<CustomRenderPipelineCamera>(); crpCamera != null ? crpCamera.Settings :
+         CameraSettings cameraSettings =  defaultCameraSettings;
         //useDepthTexture = true;
         if(camera.cameraType==CameraType.Reflection)
         {
