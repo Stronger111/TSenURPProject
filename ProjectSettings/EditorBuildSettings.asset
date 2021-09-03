@@ -6,6 +6,6 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/LODAndReflection.unity
+    path: Assets/Scenes/Catlike/LODAndReflection.unity
     guid: 5e00399334e12d4429ca8f10f392fc3e
   m_configObjects: {}
